@@ -12,9 +12,9 @@ import splitfolders
 import sqlite3
 from sklearn.preprocessing import LabelEncoder
 
-
+dict_file_out = '/data_lists/goodsounds_labels.npy'
 path_all = 'good-sounds/sound_files'
-path_output_all =  '/data_lists/goodsounds_all_test.scp'
+path_output_all =  '/data_lists/goodsounds_all.scp'
 labels_file = 'good-sounds/good-sounds-labels_test.csv'
 sqlite_path = 'good-sounds/database.sqlite'
 #splitfolders.ratio(input = path, output = 'good-sounds', seed = 42, ratio=(.6,.4), group_prefix = None, move = False)
@@ -81,10 +81,10 @@ def wav_filter(file):
     else: return False
 
 
-def create_datalist(path_to_data):
-    open(path_to_data, 'w').close()
-    with open(path_to_data, 'w') as f:
-        for root, dirs, filenames in os.walk(path_to_data):
+def create_datalist(path_to_datalist, path_to_sounds):
+    open(path_to_datalist, 'w').close()
+    with open(path_to_datalist, 'w') as f:
+        for root, dirs, filenames in os.walk(path_to_sounds):
             filenames = list(filter(wav_filter, filenames))
             for i in filenames:
                 f.writelines(os.path.join(root,i)+'\n')
@@ -98,11 +98,15 @@ encoder = LabelEncoder()
 instrument_labels = list(df['instrument'])
 labels = encoder.fit_transform(instrument_labels)
 df['label'] = labels
+create_datalist(path_output_all, path_all)
+
 
 gs_labelfile = dict()
-for file_index in range(len(df['path'])):
-    gs_labelfile[df['path'][file_index]] = df['label'][file_index]
-    print(df['path'][file_index], df['label'][file_index])
+gs_labelfile = dict.fromkeys(df['path'])
+for file_index, key in enumerate(df['path']):
+    gs_labelfile[key] = df['label'][file_index]
+np.save(dict_file_out, gs_labelfile)
+print("finished label file!")
 #print(gs_labelfile)
 
 
