@@ -23,13 +23,14 @@ sqlite_path = 'good-sounds/database.sqlite'
 def clean_sqlite(sqlite_path):
     con = sqlite3.connect(sqlite_path)
     df = pd.read_sql_query("SELECT * from Sounds", con) 
+    print("Starting to clean sqlite file...")
     cols_drop = ['note', 'octave', 'dynamics', 'recorded_at', 'location',
                 'player', 'bow_velocity', 'bridge_position', 'string', 
                 'csv_file', 'csv_id', 'attack', 'decay', 'sustain', 'release',
                 'offset', 'reference', 'comments', 'semitone', 'pitch_reference']
     con.close()
     df_sounds = df.drop(columns = cols_drop)
-
+    print("dropped SOUNDS unnecessary columns!")
     con = sqlite3.connect(sqlite_path)
     df_packs = pd.read_sql_query("SELECT * from Packs", con) 
     con.close()
@@ -45,7 +46,7 @@ def clean_sqlite(sqlite_path):
                 break
     df_sounds['pack'] = packs
     df_sounds = df_sounds.drop(columns= 'pack_id')
-
+    print("dropped pack_id!")
 
     con = sqlite3.connect(sqlite_path)
     df_takes = pd.read_sql_query("SELECT * from Takes", con) 
@@ -57,7 +58,7 @@ def clean_sqlite(sqlite_path):
                 mics.append(df_takes['microphone'][take])
                 break
     df_sounds['microphone'] = mics
-
+    print("add microphones to dataset")
 
     con = sqlite3.connect(sqlite_path)
     df_packs = pd.read_sql_query("SELECT * from Packs", con) 
@@ -70,6 +71,7 @@ def clean_sqlite(sqlite_path):
         paths.append(path_row)
     df_sounds['path'] = paths
     df_sounds.drop(columns=['pack', 'microphone', 'pack_filename', 'index'])
+    print("dataset finished!")
     return df_sounds
 
 
@@ -87,6 +89,7 @@ def create_datalist(path_to_data):
             for i in filenames:
                 f.writelines(os.path.join(root,i)+'\n')
             #  pass
+    print("datalist created!")
 
 df_s = clean_sqlite(sqlite_path)
 df_s.to_csv(labels_file)
