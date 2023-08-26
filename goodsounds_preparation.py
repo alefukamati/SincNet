@@ -1,13 +1,13 @@
 #Monta csv
 #transforma csv em dicionario com labels codificadas
 
-#falta criar datalist
 #falta fazer preprocessamento de audio
-
+#dividir em test e train (splitfolders)
 
 import pandas as pd
 import numpy as np
 import os
+import sox
 import splitfolders
 import sqlite3
 from sklearn.preprocessing import LabelEncoder
@@ -81,6 +81,20 @@ def wav_filter(file):
     else: return False
 
 
+def pre_process(path_to_sounds, root_to_output):
+    for root, dirs, filenames in os.walk(path_to_sounds):
+        filenames = list(filter(wav_filter, filenames))
+        for i in filenames:
+            soundpath = os.path.join(root,i)
+            soundpath_out = os.path.join(root_to_output, out) #REVISAR ESSA PARTE
+            tfm = sox.Transformer()
+            tfm.norm()
+            tfm.silence(location = 0, silence_threshold = 1, min_silence_duration = 0.3)
+            tfm.build_file(input_filepath = soundpath,
+                                output_filepath = soundpath_out)
+
+
+
 def create_datalist(path_to_datalist, path_to_sounds):
     open(path_to_datalist, 'w').close()
     with open(path_to_datalist, 'w') as f:
@@ -88,30 +102,24 @@ def create_datalist(path_to_datalist, path_to_sounds):
             filenames = list(filter(wav_filter, filenames))
             for i in filenames:
                 f.writelines(os.path.join(root,i)+'\n')
-            #  pass
     print("datalist created!")
 
-df_s = clean_sqlite(sqlite_path)
+
+df_s = clean_sqlite(sqlite_path) 
 df_s.to_csv(labels_file)
 df = pd.read_csv(labels_file)
 encoder = LabelEncoder()
 instrument_labels = list(df['instrument'])
 labels = encoder.fit_transform(instrument_labels)
 df['label'] = labels
-create_datalist(path_output_all, path_all)
+create_datalist(path_output_all, path_all) #cria o datalist
 
-
+#criar dicionario .npy com labels
 gs_labelfile = dict()
 gs_labelfile = dict.fromkeys(df['path'])
 for file_index, key in enumerate(df['path']):
     gs_labelfile[key] = df['label'][file_index]
 np.save(dict_file_out, gs_labelfile)
 print("finished label file!")
-#print(gs_labelfile)
 
 
-
-
-#a = np.load('data_lists/TIMIT_labels.npy', allow_pickle = True)
-#a = a.item()
-#print(a)
