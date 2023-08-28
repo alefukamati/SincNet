@@ -17,8 +17,10 @@ dict_file_out = '/data_lists/goodsounds_labels.npy'
 
 path_sounds = 'good-sounds/sound_files'
 path_sounds_norm = 'norm_good-sounds/sound_files'
-path_datalist_all =  '/data_lists/goodsounds_all.scp'
 
+path_datalist_all =  '/data_lists/goodsounds_all.scp'
+path_datalist_train = '/data_lists/goodsounds_train.scp'
+path_datalist_test = '/data_lists/goodsounds_test.scp'
 
 labels_file = 'good-sounds/good-sounds-labels.csv'
 sqlite_path = 'good-sounds/database.sqlite'
@@ -142,8 +144,8 @@ pre_process(path_sounds)
 create_datalist(path_datalist_all, path_sounds_norm) #cria o datalist
 traindir, testdir = split(path_sounds_norm)
 print("folders split into test and train")
-create_datalist()
-create_datalist()
+create_datalist(path_datalist_train, traindir)
+create_datalist(path_datalist_test, testdir)
 
 df_s = clean_sqlite(sqlite_path) 
 df_s.to_csv(labels_file)
