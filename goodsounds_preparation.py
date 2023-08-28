@@ -10,12 +10,16 @@ import os
 import sox
 import splitfolders
 import sqlite3
+import shutil
 from sklearn.preprocessing import LabelEncoder
 
 dict_file_out = '/data_lists/goodsounds_labels.npy'
+
 path_sounds = 'good-sounds/sound_files'
-norm_path_all = 'norm_good-sounds/sound_files'
-path_output_datalist =  '/data_lists/goodsounds_all.scp'
+path_sounds_norm = 'norm_good-sounds/sound_files'
+path_datalist_all =  '/data_lists/goodsounds_all.scp'
+
+
 labels_file = 'good-sounds/good-sounds-labels.csv'
 sqlite_path = 'good-sounds/database.sqlite'
 #splitfolders.ratio(input = path, output = 'good-sounds', seed = 42, ratio=(.6,.4), group_prefix = None, move = False)
@@ -35,7 +39,6 @@ def clean_sqlite(sqlite_path):
     con = sqlite3.connect(sqlite_path)
     df_packs = pd.read_sql_query("SELECT * from Packs", con) 
     con.close()
-
 
     df_sounds = df_sounds[df_sounds['pack_id'].notna()]
     df_sounds = df_sounds.reset_index()
@@ -68,13 +71,12 @@ def clean_sqlite(sqlite_path):
 
     paths = list()
     for row in range(len(df_sounds)):
-        path_row = df_sounds['pack'][row]+'/'+df_sounds['microphone'][row]+'/'+df_sounds['pack_filename'][row]
+        path_row = df_sounds['pack'][row]+'/'+df_sounds['microphone'][row]+'_'+df_sounds['pack_filename'][row]
         paths.append(path_row)
     df_sounds['path'] = paths
     df_sounds.drop(columns=['pack', 'microphone', 'pack_filename', 'index'])
     print("dataset finished!")
     return df_sounds
-
 
 
 def wav_filter(file):
@@ -91,7 +93,7 @@ def pre_process(path_to_sounds):
         for out in filenames:
             soundpath = os.path.join(root,out)
             root_to_output = 'norm_'+root
-            soundpath_out = os.path.join(root_to_output, out) #REVISAR ESSA PARTE
+            soundpath_out = os.path.join(root_to_output, out)
             tfm = sox.Transformer()
             tfm.norm()
             tfm.silence(location = 0, silence_threshold = 2, min_silence_duration = 0.2) #VERIFICAR PARAMETROS DE TEMPO
@@ -110,7 +112,39 @@ def create_datalist(path_to_datalist, path_to_sounds):
     print("datalist created!")
 
 
+def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando como prefixo de arquivos
+    mics = []
+    for root, dirs, filenames in os.walk(path):
+        filenames = list(filter(wav_filter, filenames))
+        for i in filenames:
+            filesrc = os.path.join(root,i)
+            tmp = filesrc.split('/')
+            rsd = '/'.join(tmp[0:len(tmp)-2])
+            mic = tmp[len(tmp)-2]
+            if mic not in mics: mics.append(mic)
+            filedst = rsd+'/'+mic+'_'+tmp[len(tmp)-1]
+            os.rename(filesrc, filedst)   
+            for m in mics: os.rmdir(m)
+    print("files renamed for splitting!")
+
+
+def split(path): 
+    prepare_split(path)
+    splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = None, move = False)
+    os.rename('good-sounds/val', 'good-sounds/test')
+    traindir = 'good-sounds/train'
+    testdir = 'good-sounds/test'
+    print("folders split into test and train")
+    return traindir, testdir
+
+
 pre_process(path_sounds)
+create_datalist(path_datalist_all, path_sounds_norm) #cria o datalist
+traindir, testdir = split(path_sounds_norm)
+print("folders split into test and train")
+create_datalist()
+create_datalist()
+
 df_s = clean_sqlite(sqlite_path) 
 df_s.to_csv(labels_file)
 df = pd.read_csv(labels_file)
@@ -118,8 +152,6 @@ encoder = LabelEncoder()
 instrument_labels = list(df['instrument'])
 labels = encoder.fit_transform(instrument_labels)
 df['label'] = labels
-
-create_datalist(path_output_datalist, norm_path_all) #cria o datalist
 
 #criar dicionario .npy com labels
 gs_labelfile = dict()
