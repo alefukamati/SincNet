@@ -13,9 +13,10 @@ import sqlite3
 from sklearn.preprocessing import LabelEncoder
 
 dict_file_out = '/data_lists/goodsounds_labels.npy'
-path_all = 'good-sounds/sound_files'
-path_output_all =  '/data_lists/goodsounds_all.scp'
-labels_file = 'good-sounds/good-sounds-labels_test.csv'
+path_sounds = 'good-sounds/sound_files'
+norm_path_all = 'norm_good-sounds/sound_files'
+path_output_datalist =  '/data_lists/goodsounds_all.scp'
+labels_file = 'good-sounds/good-sounds-labels.csv'
 sqlite_path = 'good-sounds/database.sqlite'
 #splitfolders.ratio(input = path, output = 'good-sounds', seed = 42, ratio=(.6,.4), group_prefix = None, move = False)
 
@@ -81,18 +82,22 @@ def wav_filter(file):
     else: return False
 
 
-def pre_process(path_to_sounds, root_to_output):
+def pre_process(path_to_sounds):
+    """ Pré processamento dos áudios, cria um diretório novo com o prefixo norm_
+        contendo os arquivos normalizados.
+    """
     for root, dirs, filenames in os.walk(path_to_sounds):
         filenames = list(filter(wav_filter, filenames))
-        for i in filenames:
-            soundpath = os.path.join(root,i)
+        for out in filenames:
+            soundpath = os.path.join(root,out)
+            root_to_output = 'norm_'+root
             soundpath_out = os.path.join(root_to_output, out) #REVISAR ESSA PARTE
             tfm = sox.Transformer()
             tfm.norm()
-            tfm.silence(location = 0, silence_threshold = 1, min_silence_duration = 0.3)
+            tfm.silence(location = 0, silence_threshold = 2, min_silence_duration = 0.2) #VERIFICAR PARAMETROS DE TEMPO
             tfm.build_file(input_filepath = soundpath,
                                 output_filepath = soundpath_out)
-
+    print(f"built preprocessing directory! example of normalized file path: {root_to_output}")
 
 
 def create_datalist(path_to_datalist, path_to_sounds):
@@ -105,6 +110,7 @@ def create_datalist(path_to_datalist, path_to_sounds):
     print("datalist created!")
 
 
+pre_process(path_sounds)
 df_s = clean_sqlite(sqlite_path) 
 df_s.to_csv(labels_file)
 df = pd.read_csv(labels_file)
@@ -112,7 +118,8 @@ encoder = LabelEncoder()
 instrument_labels = list(df['instrument'])
 labels = encoder.fit_transform(instrument_labels)
 df['label'] = labels
-create_datalist(path_output_all, path_all) #cria o datalist
+
+create_datalist(path_output_datalist, norm_path_all) #cria o datalist
 
 #criar dicionario .npy com labels
 gs_labelfile = dict()
