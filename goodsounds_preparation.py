@@ -18,9 +18,9 @@ dict_file_out = '/data_lists/goodsounds_labels.npy'
 path_sounds = 'good-sounds/sound_files'
 path_sounds_norm = 'norm_good-sounds/sound_files'
 
-path_datalist_all =  '/data_lists/goodsounds_all.scp'
-path_datalist_train = '/data_lists/goodsounds_train.scp'
-path_datalist_test = '/data_lists/goodsounds_test.scp'
+path_datalist_all =  'data_lists/goodsounds_all.scp'
+path_datalist_train = 'data_lists/goodsounds_train.scp'
+path_datalist_test = 'data_lists/goodsounds_test.scp'
 
 labels_file = 'good-sounds/good-sounds-labels.csv'
 sqlite_path = 'good-sounds/database.sqlite'
@@ -28,6 +28,7 @@ sqlite_path = 'good-sounds/database.sqlite'
 
 
 def clean_sqlite(sqlite_path):
+    print(f'cleaning sqlite dataframe on {sqlite_path}...')
     con = sqlite3.connect(sqlite_path)
     df = pd.read_sql_query("SELECT * from Sounds", con) 
     print("Starting to clean sqlite file...")
@@ -77,7 +78,7 @@ def clean_sqlite(sqlite_path):
         paths.append(path_row)
     df_sounds['path'] = paths
     df_sounds.drop(columns=['pack', 'microphone', 'pack_filename', 'index'])
-    print("dataset finished!")
+    print("dataframe ready!")
     return df_sounds
 
 
@@ -90,11 +91,13 @@ def pre_process(path_to_sounds):
     """ Pré processamento dos áudios, cria um diretório novo com o prefixo norm_
         contendo os arquivos normalizados.
     """
+    print('starting preprocess...')
     for root, dirs, filenames in os.walk(path_to_sounds):
         filenames = list(filter(wav_filter, filenames))
         for out in filenames:
             soundpath = os.path.join(root,out)
             root_to_output = 'norm_'+root
+            if not os.path.isdir(root_to_output): os.makedirs(root_to_output)
             soundpath_out = os.path.join(root_to_output, out)
             tfm = sox.Transformer()
             tfm.norm()
@@ -105,7 +108,8 @@ def pre_process(path_to_sounds):
 
 
 def create_datalist(path_to_datalist, path_to_sounds):
-    open(path_to_datalist, 'w').close()
+    print(f'creating datalist to {path_to_sounds} in path {path_to_datalist}...')
+    #f = open(path_to_datalist, 'w').close()
     with open(path_to_datalist, 'w') as f:
         for root, dirs, filenames in os.walk(path_to_sounds):
             filenames = list(filter(wav_filter, filenames))
@@ -115,9 +119,10 @@ def create_datalist(path_to_datalist, path_to_sounds):
 
 
 def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando como prefixo de arquivos
-    mics = []
+    print('preparing files for split...')
     for root, dirs, filenames in os.walk(path):
         filenames = list(filter(wav_filter, filenames))
+        mics = []
         for i in filenames:
             filesrc = os.path.join(root,i)
             tmp = filesrc.split('/')
@@ -125,13 +130,14 @@ def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando c
             mic = tmp[len(tmp)-2]
             if mic not in mics: mics.append(mic)
             filedst = rsd+'/'+mic+'_'+tmp[len(tmp)-1]
-            os.rename(filesrc, filedst)   
-            for m in mics: os.rmdir(m)
+            os.rename(filesrc, filedst) 
+            print(mics)
+            #for m in mics: os.rmdir(m)
     print("files renamed for splitting!")
 
 
 def split(path): 
-    prepare_split(path)
+    #prepare_split(path)
     splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = None, move = False)
     os.rename('good-sounds/val', 'good-sounds/test')
     traindir = 'good-sounds/train'
@@ -139,8 +145,9 @@ def split(path):
     print("folders split into test and train")
     return traindir, testdir
 
-
-pre_process(path_sounds)
+#ALTERAR ORDEM, PREPARAR SPLIT TEM Q OCORRER ANTES DE CRIAR DATALIST
+#pre_process(path_sounds)
+prepare_split(path_sounds_norm)
 create_datalist(path_datalist_all, path_sounds_norm) #cria o datalist
 traindir, testdir = split(path_sounds_norm)
 print("folders split into test and train")
