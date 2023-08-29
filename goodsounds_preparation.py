@@ -13,7 +13,7 @@ import sqlite3
 import shutil
 from sklearn.preprocessing import LabelEncoder
 
-dict_file_out = '/data_lists/goodsounds_labels.npy'
+dict_file_out = 'data_lists/goodsounds_labels.npy'
 
 path_sounds = 'good-sounds/sound_files'
 path_sounds_norm = 'norm_good-sounds/sound_files'
@@ -21,6 +21,9 @@ path_sounds_norm = 'norm_good-sounds/sound_files'
 path_datalist_all =  'data_lists/goodsounds_all.scp'
 path_datalist_train = 'data_lists/goodsounds_train.scp'
 path_datalist_test = 'data_lists/goodsounds_test.scp'
+
+path_train_sounds = 'norm_good-sounds/train'
+path_test_sounds = 'norm_good-sounds/test'
 
 labels_file = 'good-sounds/good-sounds-labels.csv'
 sqlite_path = 'good-sounds/database.sqlite'
@@ -114,8 +117,24 @@ def create_datalist(path_to_datalist, path_to_sounds):
         for root, dirs, filenames in os.walk(path_to_sounds):
             filenames = list(filter(wav_filter, filenames))
             for i in filenames:
-                f.writelines(os.path.join(root,i)+'\n')
+                pth = os.path.join(root, i)
+                tmp = pth.split('/')
+                final = '/'.join(tmp[1:])
+                f.writelines(final+'\n')
     print("datalist created!")
+
+
+def concat_datalist(datalist_train, datalist_test, datalist_all):
+    print(f'concatenating datalists to {datalist_all}...')
+    with open(datalist_test, 'r') as fp:
+        data1 = fp.read()
+    with open(datalist_train, 'r') as fp:
+        data2 = fp.read()
+    data1 += '\n'
+    data1 += data2
+    with open(datalist_all, 'w') as fp:
+        fp.write(data1)
+    print('datalist all created!')
 
 
 def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando como prefixo de arquivos
@@ -139,20 +158,17 @@ def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando c
 def split(path): 
     #NAO ESQUECER DE DESCOMENTAR A LINHA DE BAIXO EM TESTES COMUNS
    # splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = None, move = False)
-    traindir = 'good-sounds/train'
-    testdir = 'good-sounds/test'
+    #os.removedirs('norm_good-sounds/val')
     print("folders split into test and train")
-    return traindir, testdir
+
 
 #LINHAS ABAIXO PRECISAM SER DESCOMENTADAS
 #pre_process(path_sounds)
 #prepare_split(path_sounds_norm)
-#create_datalist(path_datalist_all, path_sounds_norm) #cria o datalist
-traindir, testdir = split(path_sounds_norm)
-print("folders split into test and train")
-create_datalist(path_datalist_train, traindir)
-create_datalist(path_datalist_test, testdir)
-
+#split(path_sounds_norm)
+create_datalist(path_datalist_train, path_train_sounds)
+create_datalist(path_datalist_test, path_test_sounds)
+concat_datalist(path_datalist_train, path_datalist_test, path_datalist_all)
 df_s = clean_sqlite(sqlite_path) 
 df_s.to_csv(labels_file)
 df = pd.read_csv(labels_file)
@@ -163,7 +179,7 @@ labels = encoder.fit_transform(instrument_labels)
 df['label'] = labels
 print("labels encoded!")
 
-
+#VERIFICAR FUNCIONAMENTO POR MEIO DESSE DICIONARIO
 #criar dicionario .npy com labels
 print("creating label file....")
 gs_labelfile = dict()
