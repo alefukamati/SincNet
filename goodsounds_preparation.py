@@ -1,4 +1,4 @@
-#Monta csv
+""#Monta csv
 #transforma csv em dicionario com labels codificadas
 
 #falta fazer preprocessamento de audio
@@ -132,23 +132,22 @@ def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando c
             filedst = rsd+'/'+mic+'_'+tmp[len(tmp)-1]
             os.rename(filesrc, filedst) 
             print(mics)
-            #for m in mics: os.rmdir(m)
+            #for m in mics: os.rmdir(m) VERIFICAR ISSO DPS
     print("files renamed for splitting!")
 
 
 def split(path): 
-    #prepare_split(path)
-    splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = None, move = False)
-    os.rename('good-sounds/val', 'good-sounds/test')
+    #NAO ESQUECER DE DESCOMENTAR A LINHA DE BAIXO EM TESTES COMUNS
+   # splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = None, move = False)
     traindir = 'good-sounds/train'
     testdir = 'good-sounds/test'
     print("folders split into test and train")
     return traindir, testdir
 
-#ALTERAR ORDEM, PREPARAR SPLIT TEM Q OCORRER ANTES DE CRIAR DATALIST
+#LINHAS ABAIXO PRECISAM SER DESCOMENTADAS
 #pre_process(path_sounds)
-prepare_split(path_sounds_norm)
-create_datalist(path_datalist_all, path_sounds_norm) #cria o datalist
+#prepare_split(path_sounds_norm)
+#create_datalist(path_datalist_all, path_sounds_norm) #cria o datalist
 traindir, testdir = split(path_sounds_norm)
 print("folders split into test and train")
 create_datalist(path_datalist_train, traindir)
@@ -157,17 +156,19 @@ create_datalist(path_datalist_test, testdir)
 df_s = clean_sqlite(sqlite_path) 
 df_s.to_csv(labels_file)
 df = pd.read_csv(labels_file)
+print("encoding labels...")
 encoder = LabelEncoder()
 instrument_labels = list(df['instrument'])
 labels = encoder.fit_transform(instrument_labels)
 df['label'] = labels
+print("labels encoded!")
+
 
 #criar dicionario .npy com labels
+print("creating label file....")
 gs_labelfile = dict()
 gs_labelfile = dict.fromkeys(df['path'])
 for file_index, key in enumerate(df['path']):
     gs_labelfile[key] = df['label'][file_index]
 np.save(dict_file_out, gs_labelfile)
 print("finished label file!")
-
-
