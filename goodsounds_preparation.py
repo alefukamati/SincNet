@@ -125,7 +125,7 @@ def create_datalist(path_to_datalist, path_to_sounds):
 
 
 def concat_datalist(datalist_train, datalist_test, datalist_all):
-    print(f'concatenating datalists to {datalist_all}...')
+    print(f'concatenating datalists to {datalist_all}')
     with open(datalist_test, 'r') as fp:
         data1 = fp.read()
     with open(datalist_train, 'r') as fp:
@@ -157,7 +157,7 @@ def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando c
 
 def split(path): 
     #NAO ESQUECER DE DESCOMENTAR A LINHA DE BAIXO EM TESTES COMUNS
-   # splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = None, move = False)
+   # splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = True, move = False)
     #os.removedirs('norm_good-sounds/val')
     print("folders split into test and train")
 

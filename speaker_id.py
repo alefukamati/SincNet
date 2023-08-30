@@ -55,7 +55,14 @@ def create_batches_rnd(batch_size,data_folder,wav_lst,N_snt,wlen,lab_dict,fact_a
     signal = signal[:,0]
   
   sig_batch[i,:]=signal[snt_beg:snt_end]*rand_amp_arr[i]
-  lab_batch[i]=lab_dict[wav_lst[snt_id_arr[i]]]
+  
+  
+  #tmp = lab_dict[wav_lst[snt_id_arr[i]]].split('/')
+  tmp = wav_lst[snt_id_arr[i]].split('/')
+  final = '/'.join(tmp[1:])
+  print(tmp[0])
+  lab_batch[i] = lab_dict[final]
+  #lab_batch[i]=lab_dict[wav_lst[snt_id_arr[i]]]
   
  inp=Variable(torch.from_numpy(sig_batch).float().cuda().contiguous())
  lab=Variable(torch.from_numpy(lab_batch).float().cuda().contiguous())
@@ -170,7 +177,7 @@ CNN_net=CNN(CNN_arch)
 CNN_net.cuda()
 
 # Loading label dictionary
-lab_dict=np.load(class_dict_file).item()
+lab_dict=np.load(class_dict_file, allow_pickle = True).item()
 
 
 
