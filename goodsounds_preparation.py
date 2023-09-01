@@ -16,7 +16,7 @@ from sklearn.preprocessing import LabelEncoder
 dict_file_out = 'data_lists/goodsounds_labels.npy'
 
 path_sounds = 'good-sounds/sound_files'
-path_sounds_norm = 'norm_good-sounds/sound_files'
+path_sounds_norm = 'norm_good-sounds/'
 
 path_datalist_all =  'data_lists/goodsounds_all.scp'
 path_datalist_train = 'data_lists/goodsounds_train.scp'
@@ -161,30 +161,57 @@ def split(path):
     #os.removedirs('norm_good-sounds/val')
     print("folders split into test and train")
 
+def label_dict_dir(path):
+    labels = dict()
+    files = list()
+    instruments = list()
+    print(f'creating dict for {path}')
+    for root, dirs, filenames in os.walk(path):
+        filenames = list(filter(wav_filter, filenames))
+        for i in filenames:
+            filesrc = os.path.join(root,i)
+            tmp = filesrc.split('/')
+            file = '/'.join(tmp[2:len(tmp)])
+            instrument = tmp[2].split('_')[0]
+            files.append(file)
+            instruments.append(instrument)
+    encoder = LabelEncoder()
+    inst_encoded = encoder.fit_transform(instruments)
+    for x in range(len(files)):
+        labels[files[x]] = inst_encoded[x]
+    print(f'dict created for {path}!')
+    return labels
+            
+    
+def create_labels(root, path_out):
+    print('starting to create the labelfile...')
+    path_train = root+'train'
+    path_test = root+'test'
+    labels_train = label_dict_dir(path_train)
+    labels_test = label_dict_dir(path_test)
+    all_labels = dict()
+    all_labels = {**labels_train, **labels_test}
+    np.save(path_out, all_labels)
+    print('labelfile created!')
 
 #LINHAS ABAIXO PRECISAM SER DESCOMENTADAS
 #pre_process(path_sounds)
 #prepare_split(path_sounds_norm)
 #split(path_sounds_norm)
-create_datalist(path_datalist_train, path_train_sounds)
-create_datalist(path_datalist_test, path_test_sounds)
-concat_datalist(path_datalist_train, path_datalist_test, path_datalist_all)
-df_s = clean_sqlite(sqlite_path) 
-df_s.to_csv(labels_file)
-df = pd.read_csv(labels_file)
-print("encoding labels...")
-encoder = LabelEncoder()
-instrument_labels = list(df['instrument'])
-labels = encoder.fit_transform(instrument_labels)
-df['label'] = labels
-print("labels encoded!")
+#create_datalist(path_datalist_train, path_train_sounds)
+#create_datalist(path_datalist_test, path_test_sounds)
+#concat_datalist(path_datalist_train, path_datalist_test, path_datalist_all)
+
+create_labels(path_sounds_norm, dict_file_out)
+
+
+#df_s = clean_sqlite(sqlite_path) 
+#df_s.to_csv(labels_file)
+#df = pd.read_csv(labels_file)
+#print("encoding labels...")
+
+#instrument_labels = list(df['instrument'])
+
 
 #VERIFICAR FUNCIONAMENTO POR MEIO DESSE DICIONARIO
 #criar dicionario .npy com labels
-print("creating label file....")
-gs_labelfile = dict()
-gs_labelfile = dict.fromkeys(df['path'])
-for file_index, key in enumerate(df['path']):
-    gs_labelfile[key] = df['label'][file_index]
-np.save(dict_file_out, gs_labelfile)
-print("finished label file!")

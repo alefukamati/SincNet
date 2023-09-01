@@ -60,7 +60,6 @@ def create_batches_rnd(batch_size,data_folder,wav_lst,N_snt,wlen,lab_dict,fact_a
   #tmp = lab_dict[wav_lst[snt_id_arr[i]]].split('/')
   tmp = wav_lst[snt_id_arr[i]].split('/')
   final = '/'.join(tmp[1:])
-  print(tmp[0])
   lab_batch[i] = lab_dict[final]
   #lab_batch[i]=lab_dict[wav_lst[snt_id_arr[i]]]
   
