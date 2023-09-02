@@ -283,6 +283,7 @@ for epoch in range(N_epochs):
      [signal, fs] = sf.read(data_folder+wav_lst_te[i])
 
      signal=torch.from_numpy(signal).float().cuda().contiguous()
+     print(wav_lst_te[i])
      lab_batch=lab_dict[wav_lst_te[i]]
     
      # split signals into chunks
