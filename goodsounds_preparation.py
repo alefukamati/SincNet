@@ -12,18 +12,20 @@ import splitfolders
 import sqlite3
 import shutil
 from sklearn.preprocessing import LabelEncoder
+from audiomentations import AddGaussianNoise, Compose
+
 
 dict_file_out = 'data_lists/goodsounds_labels.npy'
 
 path_sounds = 'good-sounds/sound_files'
-path_sounds_norm = 'norm_good-sounds/'
+path_sounds_norm = 'new_norm_good-sounds/'
 
-path_datalist_all =  'data_lists/goodsounds_all.scp'
-path_datalist_train = 'data_lists/goodsounds_train.scp'
-path_datalist_test = 'data_lists/goodsounds_test.scp'
+path_datalist_all =  'data_lists/newgoodsounds_all.scp'
+path_datalist_train = 'data_lists/newgoodsounds_train.scp'
+path_datalist_test = 'data_lists/newgoodsounds_test.scp'
 
-path_train_sounds = 'norm_good-sounds/train'
-path_test_sounds = 'norm_good-sounds/test'
+path_train_sounds = 'new_norm_good-sounds/train'
+path_test_sounds = 'new_norm_good-sounds/test'
 
 labels_file = 'good-sounds/good-sounds-labels.csv'
 sqlite_path = 'good-sounds/database.sqlite'
@@ -95,18 +97,23 @@ def pre_process(path_to_sounds):
         contendo os arquivos normalizados.
     """
     print('starting preprocess...')
+
+    df = pd.read_csv('good-sounds/good-sounds-labels.csv')
     for root, dirs, filenames in os.walk(path_to_sounds):
         filenames = list(filter(wav_filter, filenames))
         for out in filenames:
             soundpath = os.path.join(root,out)
-            root_to_output = 'norm_'+root
-            if not os.path.isdir(root_to_output): os.makedirs(root_to_output)
-            soundpath_out = os.path.join(root_to_output, out)
-            tfm = sox.Transformer()
-            tfm.norm()
-            tfm.silence(location = 0, silence_threshold = 2, min_silence_duration = 0.2) #VERIFICAR PARAMETROS DE TEMPO
-            tfm.build_file(input_filepath = soundpath,
-                                output_filepath = soundpath_out)
+            new_sp = soundpath.split('/')
+            tmp = '/'.join(new_sp[2:4])+'_'+new_sp[4]
+            if tmp in list(df['path']): 
+                root_to_output = 'new_norm_'+root
+                if not os.path.isdir(root_to_output): os.makedirs(root_to_output)
+                soundpath_out = os.path.join(root_to_output, out)
+                tfm = sox.Transformer()
+                tfm.norm()
+                tfm.silence(location = 0, silence_threshold = 2, min_silence_duration = 0.2) #VERIFICAR PARAMETROS DE TEMPO
+                tfm.build_file(input_filepath = soundpath,
+                                    output_filepath = soundpath_out)
     print(f"built preprocessing directory! example of normalized file path: {root_to_output}")
 
 
@@ -155,13 +162,12 @@ def prepare_split(path): #diretórios exlcuindo diretorios de mics e colocando c
     print("files renamed for splitting!")
 
 
-def split(path): 
-    #NAO ESQUECER DE DESCOMENTAR A LINHA DE BAIXO EM TESTES COMUNS
-   # splitfolders.ratio(input = path, output = 'norm_good-sounds', seed = 42, ratio=(.8, 0,.2), group_prefix = True, move = False)
+def split(path, output_path): 
+    splitfolders.ratio(input = path, output = output_path, seed = 42, ratio=(.8, 0,.2), group_prefix = True, move = False)
     #os.removedirs('norm_good-sounds/val')
     print("folders split into test and train")
 
-def label_dict_dir(path):
+def label_dict_dir(path, train = False, test = False):
     labels = dict()
     files = list()
     instruments = list()
@@ -171,7 +177,8 @@ def label_dict_dir(path):
         for i in filenames:
             filesrc = os.path.join(root,i)
             tmp = filesrc.split('/')
-            file = '/'.join(tmp[2:len(tmp)])
+            file = '/'.join(tmp[1:len(tmp)])
+            print(file)
             instrument = tmp[2].split('_')[0]
             files.append(file)
             instruments.append(instrument)
@@ -194,10 +201,19 @@ def create_labels(root, path_out):
     np.save(path_out, all_labels)
     print('labelfile created!')
 
+
+def noise_augmentation(path_in):
+    augment = Compose([
+    AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.5), ])
+    augmented = augment(samples = path_in)
+
+def audio_augmentation():
+    return
+
 #LINHAS ABAIXO PRECISAM SER DESCOMENTADAS
 #pre_process(path_sounds)
 #prepare_split(path_sounds_norm)
-#split(path_sounds_norm)
+#split(path_sounds_norm, path_sounds_norm)
 #create_datalist(path_datalist_train, path_train_sounds)
 #create_datalist(path_datalist_test, path_test_sounds)
 #concat_datalist(path_datalist_train, path_datalist_test, path_datalist_all)
@@ -210,8 +226,4 @@ create_labels(path_sounds_norm, dict_file_out)
 #df = pd.read_csv(labels_file)
 #print("encoding labels...")
 
-#instrument_labels = list(df['instrument'])
-
-
-#VERIFICAR FUNCIONAMENTO POR MEIO DESSE DICIONARIO
-#criar dicionario .npy com labels
+#instrument_labels = list(df['instrument']

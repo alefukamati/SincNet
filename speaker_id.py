@@ -51,17 +51,19 @@ def create_batches_rnd(batch_size,data_folder,wav_lst,N_snt,wlen,lab_dict,fact_a
 
   channels = len(signal.shape)
   if channels == 2:
-    print('WARNING: stereo to mono: '+data_folder+wav_lst[snt_id_arr[i]])
+    #print('WARNING: stereo to mono: '+data_folder+wav_lst[snt_id_arr[i]])
     signal = signal[:,0]
   
   sig_batch[i,:]=signal[snt_beg:snt_end]*rand_amp_arr[i]
   
   
   #tmp = lab_dict[wav_lst[snt_id_arr[i]]].split('/')
-  tmp = wav_lst[snt_id_arr[i]].split('/')
-  final = '/'.join(tmp[1:])
-  lab_batch[i] = lab_dict[final]
-  #lab_batch[i]=lab_dict[wav_lst[snt_id_arr[i]]]
+
+
+  #tmp = wav_lst[snt_id_arr[i]].split('/')
+  #final = '/'.join(tmp[1:])
+  #lab_batch[i] = lab_dict[final]
+  lab_batch[i]=lab_dict[wav_lst[snt_id_arr[i]]]
   
  inp=Variable(torch.from_numpy(sig_batch).float().cuda().contiguous())
  lab=Variable(torch.from_numpy(lab_batch).float().cuda().contiguous())
@@ -274,6 +276,7 @@ for epoch in range(N_epochs):
    err_sum=0
    err_sum_snt=0
    
+   n_test = 0
    with torch.no_grad():  
     for i in range(snt_te):
        
@@ -281,10 +284,15 @@ for epoch in range(N_epochs):
      #signal=signal.astype(float)/32768
 
      [signal, fs] = sf.read(data_folder+wav_lst_te[i])
-
+    
      signal=torch.from_numpy(signal).float().cuda().contiguous()
-     print(wav_lst_te[i])
+     #print(wav_lst_te[i])
+     #try:
      lab_batch=lab_dict[wav_lst_te[i]]
+     #except KeyError:
+      #continue
+     
+     n_test +=1
     
      # split signals into chunks
      beg_samp=0
